@@ -701,7 +701,7 @@ func ExampleContainerClient_NewQueryItemsPager() {
 
 	pk := azcosmos.NewPartitionKeyString("newPartitionKey")
 
-	queryPager := container.NewQueryItemsPager("select * from docs c", pk, nil)
+	queryPager := container.NewQueryItemsPager("select * from docs c", &pk, nil)
 	for queryPager.More() {
 		queryResponse, err := queryPager.NextPage(context.Background())
 		if err != nil {
@@ -758,7 +758,58 @@ func ExampleContainerClient_NewQueryItemsPager_parametrizedQueries() {
 
 	pk := azcosmos.NewPartitionKeyString("newPartitionKey")
 
-	queryPager := container.NewQueryItemsPager("select * from docs c where c.value = @value", pk, opt)
+	queryPager := container.NewQueryItemsPager("select * from docs c where c.value = @value", &pk, opt)
+	for queryPager.More() {
+		queryResponse, err := queryPager.NextPage(context.Background())
+		if err != nil {
+			var responseErr *azcore.ResponseError
+			errors.As(err, &responseErr)
+			panic(responseErr)
+		}
+
+		for _, item := range queryResponse.Items {
+			var itemResponseBody map[string]interface{}
+			err = json.Unmarshal(item, &itemResponseBody)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		fmt.Printf("Query page received with %v items. ActivityId %s consuming %v RU", len(queryResponse.Items), queryResponse.ActivityID, queryResponse.RequestCharge)
+	}
+}
+
+func ExampleContainerClient_NewQueryItemsPager_crossPartitionQuery() {
+	endpoint, ok := os.LookupEnv("AZURE_COSMOS_ENDPOINT")
+	if !ok {
+		panic("AZURE_COSMOS_ENDPOINT could not be found")
+	}
+
+	key, ok := os.LookupEnv("AZURE_COSMOS_KEY")
+	if !ok {
+		panic("AZURE_COSMOS_KEY could not be found")
+	}
+
+	cred, err := azcosmos.NewKeyCredential(key)
+	if err != nil {
+		panic(err)
+	}
+
+	client, err := azcosmos.NewClientWithKey(endpoint, cred, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	container, err := client.NewContainer("databaseName", "aContainer")
+	if err != nil {
+		panic(err)
+	}
+
+	opt := &azcosmos.QueryOptions{
+		EnableCrossPartitionQuery: true,
+	}
+
+	queryPager := container.NewQueryItemsPager("select * from docs c", nil, opt)
 	for queryPager.More() {
 		queryResponse, err := queryPager.NextPage(context.Background())
 		if err != nil {
