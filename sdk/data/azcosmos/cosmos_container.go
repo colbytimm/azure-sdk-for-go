@@ -406,17 +406,21 @@ func (c *ContainerClient) DeleteItem(
 // query - The SQL query to execute.
 // partitionKey - The partition key to scope the query on.
 // o - Options for the operation.
-func (c *ContainerClient) NewQueryItemsPager(query string, partitionKey PartitionKey, o *QueryOptions) *runtime.Pager[QueryItemsResponse] {
+func (c *ContainerClient) NewQueryItemsPager(query string, partitionKey *PartitionKey, o *QueryOptions) *runtime.Pager[QueryItemsResponse] {
 	correlatedActivityId, _ := uuid.New()
 	h := headerOptionsOverride{
-		partitionKey:         &partitionKey,
 		correlatedActivityId: &correlatedActivityId,
+	}
+
+	if partitionKey != nil {
+		h.partitionKey = partitionKey
 	}
 
 	queryOptions := &QueryOptions{}
 	if o != nil {
 		originalOptions := *o
 		queryOptions = &originalOptions
+		h.enableCrossPartitionQuery = &o.EnableCrossPartitionQuery
 	}
 
 	operationContext := pipelineRequestOptions{
