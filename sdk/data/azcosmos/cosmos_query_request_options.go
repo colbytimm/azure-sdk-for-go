@@ -34,6 +34,8 @@ type QueryOptions struct {
 	// QueryParameters allows execution of parametrized queries.
 	// See https://docs.microsoft.com/azure/cosmos-db/sql/sql-query-parameterized-queries
 	QueryParameters []QueryParameter
+	// EnableCrossPartitionQuery is used to enable a cross-partition query in a container.
+	EnableCrossPartitionQuery bool
 }
 
 func (options *QueryOptions) toHeaders() *map[string]string {
